@@ -13,6 +13,13 @@
 </p>
 
 
+## Highlights
+
+- **Wreath** - instant replay recorder for Windows and Arch Linux, GPU-encoded and held in memory, never touching the disk
+- Ported **boltsnap** and **eddy** to Windows: native capture, MSI and NSIS installers, release CI
+- **PIDRA** (Rust/Ratatui process manager), **Crosshair-Hype** (Wayland overlay) and **solis-browser** (vertical-tab Chromium shell)
+- 18 merged pull requests, 5 of them in other people's repositories
+
 ## Stack
 
 <p align="center">
@@ -24,11 +31,11 @@
 <p align="left">
   <a href="https://github.com/mikaeww/Wreath"><img width="278" src="https://raw.githubusercontent.com/mikaeww/mikaeww/main/assets/pin-wreath.png" alt="Wreath" /></a>
   <a href="https://github.com/mikaeww/PIDRA"><img width="278" src="https://raw.githubusercontent.com/mikaeww/mikaeww/main/assets/pin-pidra.png" alt="PIDRA" /></a>
-  <a href="https://github.com/mikaeww/Trellis"><img width="278" src="https://raw.githubusercontent.com/mikaeww/mikaeww/main/assets/pin-trellis.png" alt="Trellis" /></a>
   <a href="https://github.com/mikaeww/solis-browser"><img width="278" src="https://raw.githubusercontent.com/mikaeww/mikaeww/main/assets/pin-solis-browser.png" alt="solis-browser" /></a>
-  <a href="https://github.com/mikaeww/dotfiles"><img width="278" src="https://raw.githubusercontent.com/mikaeww/mikaeww/main/assets/pin-dotfiles.png" alt="dotfiles" /></a>
   <a href="https://github.com/mikaeww/Crosshair-Hype"><img width="278" src="https://raw.githubusercontent.com/mikaeww/mikaeww/main/assets/pin-crosshair-hype.png" alt="Crosshair-Hype" /></a>
 </p>
+
+<p align="left"><sub>More: <a href="https://github.com/mikaeww/codexr-windows">codexr-windows</a> (Go) &nbsp;·&nbsp; <a href="https://github.com/mikaeww/lith">lith</a> (Rust) &nbsp;·&nbsp; <a href="https://github.com/mikaeww/ChillTimer">ChillTimer</a> (C#/WPF) &nbsp;·&nbsp; <a href="https://github.com/mikaeww/Immersive-Minimaps-Enhanced">Immersive-Minimaps-Enhanced</a> (Java)</sub></p>
 
 ## Contributed
 
