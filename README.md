@@ -4,8 +4,8 @@ Local-first desktop software for Linux and Windows, written in Rust, Python with
 I build tools I use myself, and I keep them small.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/projects-dark.svg">
-  <img src="assets/projects-light.svg" width="100%" alt="Five of my projects, each acting out what it does: Blinky says the checks pass, PIDRA stops a process, Rewa saves a replay, Calendary moves an event, Filyy opens a folder.">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/spotlight-dark.svg">
+  <img src="assets/spotlight-light.svg" width="100%" alt="My projects, one at a time: Rewa, Calendary, Filyy, Blinky, PIDRA and Crosshype, each with what it does.">
 </picture>
 
 
