@@ -11,6 +11,4 @@ I build tools I use myself, and I keep them small.
 - Built [**Filyy**](https://github.com/mikaeww/filyy) - keyboard-friendly file manager for Hyprland (*PySide6 and Qt Quick*)
 - 18 merged pull requests, 5 of them in other people's repositories
 
-### Links
-- [X](https://x.com/mikaewww)
-- [Discord](https://discord.com/users/283390332132130816)
+
