@@ -4,7 +4,7 @@
 Header: one tile per main project, Blinky's spanning both rows, each acting out what the project does in a short loop.
 Motion runs on minimum-jerk curves sampled into keyframes, since CSS has no such easing.
 The static state (no animation, reduced motion) shows every tile after its action.
-Writes assets/header-<theme>.svg and assets/cards/<project>-<theme>.svg for both themes.
+Writes assets/projects-<theme>.svg and assets/cards/<project>-<theme>.svg for both themes.
 """
 
 import base64
@@ -256,10 +256,10 @@ def card(t: dict, name: str, icon: str, stack: str, lines: tuple[str, str]) -> s
 def main() -> None:
     (ROOT / "assets" / "cards").mkdir(exist_ok=True)
     for theme, tokens in THEMES.items():
-        (ROOT / "assets" / f"header-{theme}.svg").write_text(scene(theme))
+        (ROOT / "assets" / f"projects-{theme}.svg").write_text(scene(theme))
         for slug, name, icon, stack, lines in CARDS:
             (ROOT / "assets" / "cards" / f"{slug}-{theme}.svg").write_text(card(tokens, name, icon, stack, lines))
-    print(f"assets/header-*.svg and {len(CARDS) * len(THEMES)} cards written")
+    print(f"assets/projects-*.svg and {len(CARDS) * len(THEMES)} cards written")
 
 
 if __name__ == "__main__":
