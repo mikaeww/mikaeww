@@ -160,8 +160,8 @@ def calendary_tile(t: dict) -> tuple[str, str]:
                    f'rx="5" fill="{t["raise3"]}"/>')
     x = 16 + col + gap + 4
     out.append(f'<g class="cal-move"><g class="cal-draw"><rect x="{x:.1f}" y="62" width="{col - 8}" height="34" rx="5" '
-               f'fill="{t["fg"]}"/></g><g class="cal-label">{text(x + 5, 76, "Review", t["bg"], 9, "font-weight=\"600\"")}'
-               f'{text(x + 5, 88, "14:00", t["bg"], 9)}</g></g>')
+               f'fill="{t["fg"]}"/></g><g class="cal-label">{text(x + 6, 76, "Call", t["bg"], 9, "font-weight=\"600\"")}'
+               f'{text(x + 6, 88, "14:00", t["bg"], 9)}</g></g>')
     shift = 2 * (col + gap)
     css = (move("cal-move", st(), st(x=shift), (40, 46))
            + move("cal-draw", st(sy=0), st(), (18, 24), "transform-box:fill-box;transform-origin:top;")
