@@ -161,7 +161,7 @@ def scene(name: str) -> str:
 
 # Projects: (slug, name, icon in assets/icons, stack, description in two lines).
 CARDS = (
-    ("rewa", "Rewa", "rewa.svg", "Rust", ("Instant replay recorder for Windows and", "Arch Linux, GPU-encoded, held in memory")),
+    ("rewa", "Rewa", "rewa.png", "Rust", ("Instant replay recorder for Windows and", "Arch Linux, GPU-encoded, held in memory")),
     ("calendary", "Calendary", "calendary.svg", "Python · Qt Quick",
      ("Desktop calendar for Google and iCloud,", "on Linux and with a Windows installer")),
     ("filyy", "Filyy", "filyy.png", "Python · Qt Quick", ("Keyboard-friendly file manager", "for Hyprland")),
