@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Draw the profile pictures: the animated desk header and one card per project.
+"""Draw the profile pictures: the animated header and one card per project.
 
 Header: an agent runs the checks in the terminal, then the blinky in its corner says it is
-done and the phone beside the desk gets the push. Its static state (no animation, reduced motion) is the finished scene.
+done and the phone beside it gets the push. Its static state (no animation, reduced motion) is the finished scene.
 Writes assets/header-<theme>.svg and assets/cards/<project>-<theme>.svg for both themes.
 """
 
@@ -11,7 +11,7 @@ from html import escape
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-W, H = 1056, 340
+W, H = 672, 340
 PERIOD_S = 12
 SANS = "'IBM Plex Sans', Inter, 'Segoe UI', system-ui, sans-serif"
 MONO = "ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace"
@@ -92,11 +92,11 @@ def bar(t: dict) -> str:
     marks = "".join(f'<rect x="{28 + i * 20}" y="22" width="14" height="14" rx="4" '
                     f'fill="{t["fg"] if i == 0 else t["raise3"]}"/>' for i in range(3))
     return (f'<rect x="14" y="14" width="88" height="30" rx="9" fill="{t["raise1"]}"/>{marks}'
-            f'<rect x="400" y="14" width="80" height="30" rx="9" fill="{t["raise1"]}"/>'
-            f'<text x="440" y="34" text-anchor="middle" font-family="{SANS}" font-size="13" font-weight="500" '
+            f'<rect x="212" y="14" width="80" height="30" rx="9" fill="{t["raise1"]}"/>'
+            f'<text x="252" y="34" text-anchor="middle" font-family="{SANS}" font-size="13" font-weight="500" '
             f'fill="{t["sub"]}">12:30</text>'
-            f'<rect x="790" y="14" width="76" height="30" rx="9" fill="{t["raise1"]}"/>'
-            f'{blinky(812, 29, 9, PINK, True, True)}{blinky(838, 29, 9, NORI, False, False)}')
+            f'<rect x="414" y="14" width="76" height="30" rx="9" fill="{t["raise1"]}"/>'
+            f'{blinky(436, 29, 9, PINK, True, True)}{blinky(462, 29, 9, NORI, False, False)}')
 
 
 def terminal(t: dict) -> str:
@@ -120,55 +120,24 @@ def terminal(t: dict) -> str:
     return "".join(out)
 
 
-def files(t: dict) -> str:
-    out = [f'<rect x="502" y="56" width="364" height="129" rx="14" fill="{t["raise1"]}"/>']
-    for i, width in enumerate((52, 64, 44, 58)):
-        fill = t["raise3"] if i == 0 else t["raise2"]
-        out.append(f'<rect x="516" y="{72 + i * 22}" width="{width}" height="10" rx="4" fill="{fill}"/>')
-    out.append(f'<rect x="602" y="{66 + 22}" width="252" height="20" rx="6" fill="{t["raise2"]}"/>')
-    for i, (width, folder) in enumerate(((96, True), (128, True), (84, False), (110, False), (72, False))):
-        row_y = 71 + i * 22
-        icon = t["sub"] if folder else t["faint"]
-        out.append(f'<rect x="612" y="{row_y}" width="12" height="11" rx="3" fill="{icon}"/>'
-                   f'<rect x="634" y="{row_y + 2}" width="{width}" height="7" rx="3" fill="{t["raise3"]}"/>'
-                   f'<rect x="814" y="{row_y + 2}" width="28" height="7" rx="3" fill="{t["raise3"]}"/>')
-    return "".join(out)
-
-
-def calendar(t: dict) -> str:
-    left, col = 514, 340 / 7
-    out = [f'<rect x="502" y="197" width="364" height="129" rx="14" fill="{t["raise1"]}"/>',
-           f'<rect x="{left + 3 * col + 2:.1f}" y="206" width="{col - 4:.1f}" height="110" rx="8" '
-           f'fill="{t["raise2"]}"/>']
-    for i, day in enumerate(("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")):
-        role = "fg" if i == 3 else "faint"
-        out.append(f'<text x="{left + i * col + col / 2:.1f}" y="222" text-anchor="middle" font-family="{SANS}" '
-                   f'font-size="10" font-weight="500" fill="{t[role]}">{day}</text>')
-    events = ((0, 234, 22), (1, 250, 34), (2, 230, 16), (2, 272, 26), (3, 244, 30), (4, 238, 40), (6, 288, 18))
-    for day, top, height in events:
-        out.append(f'<rect x="{left + day * col + 5:.1f}" y="{top}" width="{col - 10:.1f}" height="{height}" '
-                   f'rx="5" fill="{t["raise3"]}"/>')
-    return "".join(out)
-
-
 def phone(t: dict) -> str:
     """The lock screen with the ntfy push Blinky sends, worded as in blinky's hook.py."""
-    return (f'<rect x="886" y="14" width="156" height="312" rx="24" fill="{t["raise1"]}"/>'
-            f'<rect x="892" y="20" width="144" height="300" rx="18" fill="{t["bg"]}"/>'
-            f'<g font-family="{SANS}"><text x="964" y="78" text-anchor="middle" font-size="32" font-weight="300" '
+    return (f'<rect x="502" y="14" width="156" height="312" rx="24" fill="{t["raise1"]}"/>'
+            f'<rect x="508" y="20" width="144" height="300" rx="18" fill="{t["bg"]}"/>'
+            f'<g font-family="{SANS}"><text x="580" y="78" text-anchor="middle" font-size="32" font-weight="300" '
             f'fill="{t["fg"]}">12:30</text>'
-            f'<g class="push"><rect x="900" y="104" width="128" height="62" rx="12" fill="{t["raise2"]}"/>'
-            f'<text x="910" y="122" font-size="10" fill="{t["faint"]}">ntfy · now</text>'
-            f'<text x="910" y="139" font-size="12" font-weight="600" fill="{t["fg"]}">blinky · Pip</text>'
-            f'<text x="910" y="156" font-size="12" fill="{t["sub"]}">Claude is done</text></g></g>')
+            f'<g class="push"><rect x="516" y="104" width="128" height="62" rx="12" fill="{t["raise2"]}"/>'
+            f'<text x="526" y="122" font-size="10" fill="{t["faint"]}">ntfy · now</text>'
+            f'<text x="526" y="139" font-size="12" font-weight="600" fill="{t["fg"]}">blinky · Pip</text>'
+            f'<text x="526" y="156" font-size="12" fill="{t["sub"]}">Claude is done</text></g></g>')
 
 
 def scene(name: str) -> str:
     t = THEMES[name]
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
-            f'aria-label="A desk with a terminal, Filyy and Calendary; a blinky reports that the checks pass and the phone gets the push">'
+            f'aria-label="A terminal and a phone; a blinky reports that the checks pass and the phone gets the push">'
             f'<style>{css(t)}</style><rect width="{W}" height="{H}" rx="18" fill="{t["bg"]}"/>'
-            f'{bar(t)}{terminal(t)}{files(t)}{calendar(t)}{phone(t)}</svg>\n')
+            f'{bar(t)}{terminal(t)}{phone(t)}</svg>\n')
 
 
 # Projects: (slug, name, icon in assets/icons, stack, description in two lines).
