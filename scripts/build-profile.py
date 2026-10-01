@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Draw the profile pictures: the animated header and one card per project.
 
-Header: an agent runs the checks in the terminal, then the blinky in its corner says it is
-done and the phone beside it gets the push. Its static state (no animation, reduced motion) is the finished scene.
+Header: one tile per main project, Blinky's spanning both rows, each acting out what the project does in a short loop.
+Motion runs on minimum-jerk curves sampled into keyframes, since CSS has no such easing.
+The static state (no animation, reduced motion) shows every tile after its action.
 Writes assets/header-<theme>.svg and assets/cards/<project>-<theme>.svg for both themes.
 """
 
@@ -11,11 +12,13 @@ from html import escape
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-W, H = 672, 340
+TILE_W, TILE_H, GAP = 274, 176, 14
+W, H = 4 * GAP + 3 * TILE_W, 3 * GAP + 2 * TILE_H
 PERIOD_S = 12
 SANS = "'IBM Plex Sans', Inter, 'Segoe UI', system-ui, sans-serif"
 MONO = "ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace"
-PINK, NORI, INK, BLUSH = "#f2a7a0", "#9fd4b0", "#1f1b1a", "#ff7f9b"
+PINK, INK, BLUSH = "#f2a7a0", "#1f1b1a", "#ff7f9b"
+PRE = 'xml:space="preserve"'
 
 THEMES = {
     "dark": {"bg": "#161616", "raise1": "#202020", "raise2": "#2a2a2a", "raise3": "#363636",
@@ -24,131 +27,200 @@ THEMES = {
               "fg": "#1a1a1a", "sub": "#555555", "faint": "#8c8c8c"},
 }
 
-# Terminal lines: (start of the line in % of the period, colour role, text).
+
+def st(**k: float) -> dict:
+    """A track state: opacity, translation in px and scale."""
+    return {"o": 1, "x": 0, "y": 0, "sx": 1, "sy": 1} | k
+
+
+def style(s: dict) -> str:
+    return (f"opacity:{s['o']:.3f};transform:translate({s['x'] + 0:.2f}px,{s['y'] + 0:.2f}px) "
+            f"scale({s['sx']:.3f},{s['sy']:.3f})")
+
+
+def track(name: str, stops: list, still: dict, extra: str = "") -> str:
+    """Keyframes through (percent, state) stops; `still` is the frame shown without motion."""
+    frames = []
+    for (p0, a), (p1, b) in zip(stops, stops[1:]):
+        steps = 1 if a == b else 8
+        for k in range(steps):
+            u = k / steps
+            e = 10 * u**3 - 15 * u**4 + 6 * u**5
+            frames.append(f"{round(p0 + (p1 - p0) * u, 3):g}%{{{style({n: a[n] + (b[n] - a[n]) * e for n in a})}}}")
+    frames.append(f"100%{{{style(stops[-1][1])}}}")
+    return (f"@keyframes {name}{{{''.join(frames)}}}"
+            f".{name}{{{style(still)};{extra}animation:{name} {PERIOD_S}s linear infinite}}")
+
+
+def move(name: str, start: dict, end: dict, span: tuple[float, float], extra: str = "") -> str:
+    """Go from start to end within span, hold, and snap back while the tile is faded out (see `loop`)."""
+    return track(name, [(0, start), (span[0], start), (span[1], end), (94.5, end), (95, start), (100, start)],
+                 end, extra)
+
+
+def appear(name: str, at: float) -> str:
+    return move(name, st(o=0), st(), (at, at + 2))
+
+
+def text(x: float, y: float, value: str, fill: str, size: int = 11, extra: str = "") -> str:
+    return f'<text x="{x:g}" y="{y:g}" font-size="{size}" fill="{fill}" {extra}>{escape(value)}</text>'
+
+
+# Blinky's terminal, a real run of its checks: (start in % of the period, baseline, colour role, text).
 LINES = (
-    (14, "fg", "● Bash(python3 tools/check.py)"),
-    (20, "sub", "  └ 53 files checked"),
-    (26, "sub", "  └ Ran 32 tests   OK"),
-    (31, "sub", "  └ all checks passed"),
-    (36, "fg", "● All checks pass."),
+    (12, 52, "sub", "● Bash(python3 tools/check.py)"),
+    (16, 72, "sub", "  └ 54 files checked"),
+    (20, 92, "sub", "  └ Ran 32 tests   OK"),
+    (24, 112, "sub", "  └ all checks passed"),
+    (28, 140, "fg", "● All checks pass."),
 )
-PROMPT = "run the checks"
-CHAR_W = 7.8
-DONE_AT = 37
 
 
-def slide_in(name: str, at: int, span: int = 4, rise: int = 16) -> str:
-    """Drop in from above on a minimum-jerk curve; CSS has no such easing, so it is sampled into keyframes."""
-    frames = [f"0%,{at}%{{opacity:0;transform:translateY(-{rise}px)}}"]
-    for k in range(1, 9):
-        u = k / 8
-        e = 10 * u**3 - 15 * u**4 + 6 * u**5
-        frames.append(f"{at + span * u:g}%{{opacity:{e:.3f};transform:translateY({rise * (e - 1) + 0:.2f}px)}}")
-    frames.append("93%{opacity:1;transform:translateY(0)}98%,100%{opacity:0;transform:translateY(0)}")
-    return f"@keyframes {name}{{{''.join(frames)}}}"
+def blinky_tile(t: dict) -> tuple[str, str]:
+    cx, cy, r = 236, 300, 18
+    eyes = "".join(f'<rect class="bk-lid" x="{cx + side * 0.32 * r - 0.1 * r:.1f}" y="{cy - 0.26 * r:.1f}" '
+                   f'width="{0.2 * r:.1f}" height="{0.42 * r:.1f}" rx="{0.1 * r:.1f}" fill="{INK}"/>' for side in (-1, 1))
+    arches = "".join(f'<path d="M{cx + side * 0.32 * r - 0.15 * r:.1f} {cy - 0.04 * r:.1f}q{0.15 * r:.1f} {-0.36 * r:.1f} '
+                     f'{0.3 * r:.1f} 0" fill="none" stroke="{INK}" stroke-width="2" stroke-linecap="round"/>'
+                     for side in (-1, 1))
+    blush = "".join(f'<ellipse cx="{cx + side * 0.58 * r:.1f}" cy="{cy + 0.34 * r:.1f}" rx="{0.18 * r:.1f}" '
+                    f'ry="{0.1 * r:.1f}" fill="{BLUSH}" opacity=".42"/>' for side in (-1, 1))
+    body = (f'<g font-family="{MONO}">{text(16, 30, ">", t["faint"])}{text(30, 30, "run the checks", t["fg"])}'
+            + "".join(f'<g class="bk-l{i}">{text(16, y, line, t[role], 11, PRE)}</g>' for i, (_, y, role, line) in enumerate(LINES))
+            + f'</g><g class="bk-bubble"><rect x="94" y="282" width="114" height="36" rx="10" fill="{t["raise3"]}"/>'
+            f'{text(104, 297, "blinky · Claude", t["sub"], 10)}'
+            f'{text(104, 311, "All checks pass.", t["fg"], 11, "font-weight=\"500\"")}</g>'
+            f'<g class="bk-hop"><circle cx="{cx}" cy="{cy}" r="{r}" fill="{PINK}"/>{blush}'
+            f'<g class="bk-eyes">{eyes}</g><g class="bk-done">{arches}</g></g>')
+    lid = st()
+    css = ("".join(appear(f"bk-l{i}", at) for i, (at, _, _, _) in enumerate(LINES)) + appear("bk-done", 30)
+           + move("bk-eyes", st(), st(o=0), (30, 32))
+           + track("bk-lid", [(0, lid), (6, lid), (7, st(sy=0.1)), (8, lid), (20, lid), (21, st(sy=0.1)),
+                              (22, lid), (100, lid)], lid, "transform-box:fill-box;transform-origin:center;")
+           + track("bk-hop", [(0, st()), (30, st()), (33, st(y=-6)), (36, st()), (100, st())], st())
+           + move("bk-bubble", st(o=0, y=-8), st(), (32, 36)))
+    return body, css
 
 
-def css(t: dict) -> str:
-    def show(name: str, at: int) -> str:
-        return (f"@keyframes {name}{{0%,{at}%{{opacity:0}}{at + 1}%,93%{{opacity:1}}98%,100%{{opacity:0}}}}")
-
-    typed = len(PROMPT) * CHAR_W
-    rules = [show(f"l{i}", at) for i, (at, _, _) in enumerate(LINES)]
-    rules += [show("done", DONE_AT), show("bubble", DONE_AT + 1), slide_in("push", DONE_AT + 3),
-              "@keyframes prompt{0%,93%{opacity:1}98%,100%{opacity:0}}",
-              f"@keyframes type{{0%,2%{{transform:translateX(0)}}11%,100%{{transform:translateX({typed}px)}}}}",
-              "@keyframes cursor{0%,11%{opacity:1}12%,100%{opacity:0}}",
-              f"@keyframes open{{0%,{DONE_AT}%{{opacity:1}}{DONE_AT + 1}%,93%{{opacity:0}}98%,100%{{opacity:1}}}}",
-              "@keyframes gaze{0%,12%{transform:translate(-3px,0)}15%,36%{transform:translate(0,3px)}"
-              "40%,100%{transform:translate(0,0)}}",
-              "@keyframes blink{0%,5%,7%,24%,26%,100%{transform:scaleY(1)}6%,25%{transform:scaleY(.1)}}",
-              f"@keyframes hop{{0%,{DONE_AT}%,{DONE_AT + 4}%,100%{{transform:translateY(0)}}"
-              f"{DONE_AT + 2}%{{transform:translateY(-6px)}}}}"]
-    anim = f"{PERIOD_S}s linear infinite"
-    rules += [f".l{i}{{animation:l{i} {anim}}}" for i in range(len(LINES))]
-    rules += [f".done{{animation:done {anim}}}", f".bubble{{animation:bubble {anim}}}", f".push{{animation:push {anim}}}",
-              f".prompt{{animation:prompt {anim}}}", f".cover{{transform:translateX({typed}px)}}",
-              f".cover{{animation:type {anim};animation-timing-function:steps({len(PROMPT)},end)}}",
-              f".cursor{{opacity:0;animation:cursor {anim}}}",
-              f".open{{opacity:0;animation:open {anim}}}", f".gaze{{animation:gaze {anim}}}",
-              f".lid{{transform-box:fill-box;transform-origin:center;animation:blink {anim}}}",
-              f".hop{{animation:hop {anim}}}",
-              "@media (prefers-reduced-motion:reduce){*{animation:none!important}}"]
-    return "".join(rules)
+def pidra_tile(t: dict) -> tuple[str, str]:
+    rows = (("spotify", "1.2 GB", 70), ("zen", "998 MB", 58), ("code", "640 MB", 37), ("discord", "410 MB", 24))
+    out = [f'<g font-family="{MONO}">{text(16, 26, "PROCESS", t["faint"], 9)}{text(168, 26, "MEM", t["faint"], 9, "text-anchor=\"end\"")}',
+           f'<rect class="pd-sel" x="10" y="36" width="254" height="20" rx="6" fill="{t["raise2"]}"/>']
+    for i, (name, mem, bar) in enumerate(rows):
+        y = 50 + i * 20
+        cls = ("", "pd-zen", "pd-up", "pd-up")[i]
+        out.append(f'<g class="{cls}">{text(20, y, name, t["fg"])}{text(168, y, mem, t["sub"], 11, "text-anchor=\"end\"")}'
+                   f'<rect x="182" y="{y - 6}" width="{bar}" height="4" rx="2" fill="{t["raise3"]}"/></g>')
+    out.append(f'<g class="pd-act">{text(16, 136, "zen →  [R] Restart  [S] Stop", t["sub"], 10, PRE)}</g>'
+               f'<g class="pd-res">{text(16, 136, "zen    STOP    EXITED", t["sub"], 10, PRE)}</g></g>')
+    hidden, shown = st(o=0), st()
+    css = (move("pd-sel", st(), st(y=20), (14, 17))
+           + track("pd-act", [(0, hidden), (18, hidden), (20, shown), (32, shown), (34, hidden), (100, hidden)], hidden)
+           + move("pd-zen", st(), st(o=0, x=-12), (28, 32))
+           + move("pd-up", st(), st(y=-20), (32, 36))
+           + appear("pd-res", 35))
+    return "".join(out), css
 
 
-def blinky(cx: float, cy: float, r: float, color: str, blush: bool, finishes: bool) -> str:
-    """One blinky as drawn by BlinkyFace.qml: tall eyes, ^^ once its agent is done."""
-    w, h, split, ey = 0.2 * r, 0.42 * r, 0.32 * r, cy - 0.05 * r
-    parts = [f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}"/>',
-             f'<ellipse cx="{cx - 0.37 * r:.1f}" cy="{cy - 0.57 * r:.1f}" rx="{0.25 * r:.1f}" ry="{0.15 * r:.1f}" '
-             f'fill="#fff" opacity=".38" transform="rotate(-24 {cx - 0.37 * r:.1f} {cy - 0.57 * r:.1f})"/>']
-    if blush:
-        for side in (-1, 1):
-            parts.append(f'<ellipse cx="{cx + side * 0.58 * r:.1f}" cy="{cy + 0.34 * r:.1f}" rx="{0.18 * r:.1f}" '
-                         f'ry="{0.1 * r:.1f}" fill="{BLUSH}" opacity=".42"/>')
-    eyes = "".join(f'<rect class="lid" x="{cx + side * split - w / 2:.1f}" y="{ey - h / 2:.1f}" width="{w:.1f}" '
-                   f'height="{h:.1f}" rx="{w / 2:.1f}" fill="{INK}"/>' for side in (-1, 1))
-    if not finishes:
-        return f'<g>{"".join(parts)}<g class="gaze"><g>{eyes}</g></g></g>'
-    aw, ah, ay = 0.3 * r, 0.18 * r, ey - 0.08 * r
-    arches = "".join(f'<path d="M{cx + side * split - aw / 2:.1f} {ay + ah / 2:.1f}q{aw / 2:.1f} {-2 * ah:.1f} '
-                     f'{aw:.1f} 0" fill="none" stroke="{INK}" stroke-width="{max(1.2, 0.11 * r):.1f}" '
-                     f'stroke-linecap="round"/>' for side in (-1, 1))
-    return (f'<g class="hop">{"".join(parts)}<g class="open"><g class="gaze"><g>{eyes}</g></g></g>'
-            f'<g class="done">{arches}</g></g>')
+def rewa_tile(t: dict) -> tuple[str, str]:
+    ticks = "".join(f'<rect x="{20 + i * 10}" y="{50 - h / 2}" width="5" height="{h}" rx="2" fill="{t["raise3"]}"/>'
+                    for i, h in enumerate((8, 12, 6, 10) * 9))
+    thumbs = "".join(f'<rect x="{16 + i * 72}" y="86" width="64" height="36" rx="6" fill="{t["raise2"]}"/>'
+                     f'{text(22 + i * 72, 116, length, t["sub"], 9, f"font-family=\"{MONO}\"")}'
+                     for i, length in enumerate(("1:12", "0:45")))
+    body = (f'<clipPath id="strip"><rect x="16" y="40" width="242" height="20" rx="6"/></clipPath>'
+            f'{text(16, 28, "Replay · 30 sec", t["sub"])}'
+            f'<rect x="164" y="14" width="94" height="20" rx="6" fill="{t["raise2"]}"/>'
+            f'<rect class="rw-key" x="164" y="14" width="94" height="20" rx="6" fill="{t["raise3"]}"/>'
+            f'{text(211, 28, "Super+Shift+R", t["fg"], 10, f"text-anchor=\"middle\" font-family=\"{MONO}\"")}'
+            f'<g clip-path="url(#strip)"><rect x="16" y="40" width="242" height="20" fill="{t["raise2"]}"/>'
+            f'<g class="rw-roll">{ticks}</g></g>'
+            f'{text(16, 78, "Library", t["faint"], 10)}<g class="rw-shift">{thumbs}</g>'
+            f'<g class="rw-new"><rect x="16" y="86" width="64" height="36" rx="6" fill="{t["raise3"]}"/>'
+            f'{text(22, 116, "0:30", t["fg"], 9, f"font-family=\"{MONO}\"")}</g>')
+    off, on = st(o=0), st()
+    css = ("@keyframes rw-roll{from{transform:translateX(0)}to{transform:translateX(-120px)}}"
+           f".rw-roll{{animation:rw-roll {PERIOD_S}s linear infinite}}"
+           + track("rw-key", [(0, off), (40, off), (41, on), (44, on), (46, off), (100, off)], off)
+           + move("rw-shift", st(), st(x=72), (42, 47))
+           + move("rw-new", st(o=0, y=-12), st(), (45, 49)))
+    return body, css
 
 
-def bar(t: dict) -> str:
-    marks = "".join(f'<rect x="{28 + i * 20}" y="22" width="14" height="14" rx="4" '
-                    f'fill="{t["fg"] if i == 0 else t["raise3"]}"/>' for i in range(3))
-    return (f'<rect x="14" y="14" width="88" height="30" rx="9" fill="{t["raise1"]}"/>{marks}'
-            f'<rect x="212" y="14" width="80" height="30" rx="9" fill="{t["raise1"]}"/>'
-            f'<text x="252" y="34" text-anchor="middle" font-family="{SANS}" font-size="13" font-weight="500" '
-            f'fill="{t["sub"]}">12:30</text>'
-            f'<rect x="414" y="14" width="76" height="30" rx="9" fill="{t["raise1"]}"/>'
-            f'{blinky(436, 29, 9, PINK, True, True)}{blinky(462, 29, 9, NORI, False, False)}')
+def calendary_tile(t: dict) -> tuple[str, str]:
+    col, gap = 43.6, 6
+    out = []
+    for i, day in enumerate(("Mon", "Tue", "Wed", "Thu", "Fri")):
+        x = 16 + i * (col + gap)
+        role = "fg" if i == 3 else "faint"
+        out.append(text(x + col / 2, 28, day, t[role], 10, 'text-anchor="middle" font-weight="500"')
+                   + f'<rect x="{x:.1f}" y="38" width="{col}" height="94" rx="8" fill="{t["raise2"]}"/>')
+    for day, top, height in ((0, 46, 22), (2, 70, 30), (4, 50, 18), (3, 104, 20)):
+        out.append(f'<rect x="{16 + day * (col + gap) + 4:.1f}" y="{top}" width="{col - 8}" height="{height}" '
+                   f'rx="5" fill="{t["raise3"]}"/>')
+    x = 16 + col + gap + 4
+    out.append(f'<g class="cal-move"><g class="cal-draw"><rect x="{x:.1f}" y="62" width="{col - 8}" height="34" rx="5" '
+               f'fill="{t["fg"]}"/></g><g class="cal-label">{text(x + 5, 76, "Review", t["bg"], 9, "font-weight=\"600\"")}'
+               f'{text(x + 5, 88, "14:00", t["bg"], 9)}</g></g>')
+    shift = 2 * (col + gap)
+    css = (move("cal-move", st(), st(x=shift), (40, 46))
+           + move("cal-draw", st(sy=0), st(), (18, 24), "transform-box:fill-box;transform-origin:top;")
+           + appear("cal-label", 24))
+    return "".join(out), css
 
 
-def terminal(t: dict) -> str:
-    x, y = 34, 90
-    out = [f'<rect x="14" y="56" width="476" height="270" rx="14" fill="{t["raise1"]}"/>',
-           f'<g font-family="{MONO}" font-size="13">',
-           f'<g class="prompt"><text x="{x}" y="{y}" fill="{t["faint"]}">&gt;</text>'
-           f'<text x="{x + 16}" y="{y}" fill="{t["fg"]}">{PROMPT}</text></g>',
-           f'<g class="cover"><rect x="{x + 15}" y="{y - 14}" width="{len(PROMPT) * CHAR_W + 12}" height="20" '
-           f'fill="{t["raise1"]}"/><rect class="cursor" x="{x + 16}" y="{y - 12}" width="7" height="16" rx="1" '
-           f'fill="{t["fg"]}"/></g>']
-    for i, (_, role, text) in enumerate(LINES):
-        line_y = y + 30 + i * 22 + (10 if i == len(LINES) - 1 else 0)
-        out.append(f'<text class="l{i}" x="{x}" y="{line_y}" fill="{t[role]}" xml:space="preserve">{text}</text>')
-    out.append("</g>")
-    out.append(f'<g class="bubble"><rect x="262" y="262" width="148" height="44" rx="10" fill="{t["raise3"]}"/>'
-               f'<text x="274" y="280" font-family="{SANS}" font-size="11" fill="{t["sub"]}">blinky · Claude</text>'
-               f'<text x="274" y="297" font-family="{SANS}" font-size="12" font-weight="500" '
-               f'fill="{t["fg"]}">All checks pass.</text></g>')
-    out.append(blinky(446, 284, 22, PINK, True, True))
-    return "".join(out)
+def filyy_tile(t: dict) -> tuple[str, str]:
+    def rows(cls: str, names: tuple, folder: bool) -> str:
+        icon = (lambda y: f'<rect x="20" y="{y - 9}" width="12" height="10" rx="3" fill="{t["sub"]}"/>') if folder else \
+               (lambda y: f'<rect x="22" y="{y - 10}" width="9" height="12" rx="2" fill="{t["faint"]}"/>')
+        return f'<g class="{cls}">' + "".join(icon(52 + i * 20) + text(40, 52 + i * 20, n, t["fg"])
+                                              for i, n in enumerate(names)) + "</g>"
+    crumb = f'<tspan fill="{t["sub"]}">Home › </tspan>Projekte'
+    body = (f'<g font-family="{MONO}"><text x="16" y="28" font-size="11" fill="{t["fg"]}">{crumb}</text>'
+            f'<g class="fl-crumb"><text x="16" y="28" font-size="11" fill="{t["fg"]}">'
+            f'<tspan fill-opacity="0">Home › Projekte</tspan> › src</text></g>'
+            f'<rect class="fl-sel" x="10" y="38" width="254" height="20" rx="6" fill="{t["raise2"]}"/>'
+            f'{rows("fl-a", ("assets", "docs", "src", "tests"), True)}'
+            f'{rows("fl-b", ("app.py", "board.qml", "files.py"), False)}</g>')
+    sel = [(0, st()), (16, st()), (19, st(y=20)), (24, st(y=20)), (27, st(y=40)), (36, st(y=40)), (40, st()), (100, st())]
+    b_off, b_on = st(o=0, x=40), st()
+    css = (track("fl-sel", sel, st())
+           + move("fl-a", st(), st(o=0, x=-40), (36, 40))
+           + move("fl-b", b_off, b_on, (37, 41))
+           + appear("fl-crumb", 38))
+    return body, css
 
 
-def phone(t: dict) -> str:
-    """The lock screen with the ntfy push Blinky sends, worded as in blinky's hook.py."""
-    return (f'<rect x="502" y="14" width="156" height="312" rx="24" fill="{t["raise1"]}"/>'
-            f'<rect x="508" y="20" width="144" height="300" rx="18" fill="{t["bg"]}"/>'
-            f'<g font-family="{SANS}"><text x="580" y="78" text-anchor="middle" font-size="32" font-weight="300" '
-            f'fill="{t["fg"]}">12:30</text>'
-            f'<g class="push"><rect x="516" y="104" width="128" height="62" rx="12" fill="{t["raise2"]}"/>'
-            f'<text x="526" y="122" font-size="10" fill="{t["faint"]}">ntfy · now</text>'
-            f'<text x="526" y="139" font-size="12" font-weight="600" fill="{t["fg"]}">blinky · Pip</text>'
-            f'<text x="526" y="156" font-size="12" fill="{t["sub"]}">Claude is done</text></g></g>')
+def loop() -> str:
+    """Every tile fades out at the end of the period, resets unseen and fades back in at its start."""
+    on, off = st(), st(o=0)
+    return track("loop", [(0, on), (91, on), (94, off), (96, off), (99, on), (100, on)], on)
+
+
+# Tiles: (draw, name, stack, column, row, rows spanned); Blinky takes the full height on the left.
+TILES = ((blinky_tile, "Blinky", "Python · QML", 0, 0, 2), (pidra_tile, "PIDRA", "Rust · Ratatui", 1, 0, 1),
+         (rewa_tile, "Rewa", "Rust", 2, 0, 1), (calendary_tile, "Calendary", "Python · Qt Quick", 1, 1, 1),
+         (filyy_tile, "Filyy", "Python · Qt Quick", 2, 1, 1))
 
 
 def scene(name: str) -> str:
     t = THEMES[name]
+    tiles, rules = [], []
+    for draw, title, stack, column, row, span in TILES:
+        x, y = GAP + column * (TILE_W + GAP), GAP + row * (TILE_H + GAP)
+        h = span * TILE_H + (span - 1) * GAP
+        body, css = draw(t)
+        rules.append(css)
+        tiles.append(f'<g transform="translate({x},{y})"><clipPath id="clip-{title}"><rect width="{TILE_W}" '
+                     f'height="{h}" rx="14"/></clipPath><rect width="{TILE_W}" height="{h}" rx="14" '
+                     f'fill="{t["raise1"]}"/><g clip-path="url(#clip-{title})" font-family="{SANS}"><g class="loop">{body}</g>'
+                     f'{text(16, h - 18, title, t["fg"], 13, "font-weight=\"600\"")}'
+                     f'{text(TILE_W - 16, h - 18, stack, t["faint"], 10, "text-anchor=\"end\" font-weight=\"500\"")}</g></g>')
+    rules.append(loop())
+    rules.append("@media (prefers-reduced-motion:reduce){*{animation:none!important}}")
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
-            f'aria-label="A terminal and a phone; a blinky reports that the checks pass and the phone gets the push">'
-            f'<style>{css(t)}</style><rect width="{W}" height="{H}" rx="18" fill="{t["bg"]}"/>'
-            f'{bar(t)}{terminal(t)}{phone(t)}</svg>\n')
+            f'aria-label="Five projects acting out what they do: Blinky, PIDRA, Rewa, Calendary and Filyy">'
+            f'<style>{"".join(rules)}</style><rect width="{W}" height="{H}" rx="18" fill="{t["bg"]}"/>{"".join(tiles)}</svg>\n')
 
 
 # Projects: (slug, name, icon in assets/icons, stack, description in two lines).

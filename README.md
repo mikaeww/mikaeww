@@ -5,9 +5,8 @@ I build tools I use myself, and I keep them small.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.svg">
-  <img src="assets/header-light.svg" width="100%" alt="An agent runs the checks in a terminal, and the little character in its corner says they pass. Next to it, the phone gets the push that Claude is done.">
+  <img src="assets/header-light.svg" width="100%" alt="Five of my projects, each acting out what it does: Blinky says the checks pass, PIDRA stops a process, Rewa saves a replay, Calendary moves an event, Filyy opens a folder.">
 </picture>
-<br><sub>Blinky preview</sub>
 
 
 ### Projects
@@ -26,4 +25,4 @@ I build tools I use myself, and I keep them small.
 - Ported [**boltsnap**](https://github.com/drvcvt/boltsnap) and [**eddy**](https://github.com/drvcvt/eddy) to Windows: native capture, MSI and NSIS installers, release CI
 - 18 merged pull requests, 6 of them in other people's repositories
 
-<sub>Header and cards are drawn by [`scripts/build-profile.py`](scripts/build-profile.py); the terminal shows a real run of Blinky's checks.</sub>
+<sub>Header and cards are drawn by [`scripts/build-profile.py`](scripts/build-profile.py).</sub>
