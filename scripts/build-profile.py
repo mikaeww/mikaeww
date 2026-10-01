@@ -2,7 +2,7 @@
 """Draw the profile pictures: the animated desk header and one card per project.
 
 Header: an agent runs the checks in the terminal, then the blinky in its corner says it is
-done. Its static state (no animation, reduced motion) is the finished scene.
+done and the phone beside the desk gets the push. Its static state (no animation, reduced motion) is the finished scene.
 Writes assets/header-<theme>.svg and assets/cards/<project>-<theme>.svg for both themes.
 """
 
@@ -11,7 +11,7 @@ from html import escape
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-W, H = 880, 340
+W, H = 1056, 340
 PERIOD_S = 12
 SANS = "'IBM Plex Sans', Inter, 'Segoe UI', system-ui, sans-serif"
 MONO = "ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace"
@@ -43,7 +43,7 @@ def css(t: dict) -> str:
 
     typed = len(PROMPT) * CHAR_W
     rules = [show(f"l{i}", at) for i, (at, _, _) in enumerate(LINES)]
-    rules += [show("done", DONE_AT), show("bubble", DONE_AT + 1),
+    rules += [show("done", DONE_AT), show("bubble", DONE_AT + 1), show("push", DONE_AT + 3),
               "@keyframes prompt{0%,93%{opacity:1}98%,100%{opacity:0}}",
               f"@keyframes type{{0%,2%{{transform:translateX(0)}}11%,100%{{transform:translateX({typed}px)}}}}",
               "@keyframes cursor{0%,11%{opacity:1}12%,100%{opacity:0}}",
@@ -55,7 +55,7 @@ def css(t: dict) -> str:
               f"{DONE_AT + 2}%{{transform:translateY(-6px)}}}}"]
     anim = f"{PERIOD_S}s linear infinite"
     rules += [f".l{i}{{animation:l{i} {anim}}}" for i in range(len(LINES))]
-    rules += [f".done{{animation:done {anim}}}", f".bubble{{animation:bubble {anim}}}",
+    rules += [f".done{{animation:done {anim}}}", f".bubble{{animation:bubble {anim}}}", f".push{{animation:push {anim}}}",
               f".prompt{{animation:prompt {anim}}}", f".cover{{transform:translateX({typed}px)}}",
               f".cover{{animation:type {anim};animation-timing-function:steps({len(PROMPT)},end)}}",
               f".cursor{{opacity:0;animation:cursor {anim}}}",
@@ -151,12 +151,24 @@ def calendar(t: dict) -> str:
     return "".join(out)
 
 
+def phone(t: dict) -> str:
+    """The lock screen with the ntfy push Blinky sends, worded as in blinky's hook.py."""
+    return (f'<rect x="886" y="14" width="156" height="312" rx="24" fill="{t["raise1"]}"/>'
+            f'<rect x="892" y="20" width="144" height="300" rx="18" fill="{t["bg"]}"/>'
+            f'<g font-family="{SANS}"><text x="964" y="78" text-anchor="middle" font-size="32" font-weight="300" '
+            f'fill="{t["fg"]}">12:30</text>'
+            f'<g class="push"><rect x="900" y="104" width="128" height="62" rx="12" fill="{t["raise2"]}"/>'
+            f'<text x="910" y="122" font-size="10" fill="{t["faint"]}">ntfy · now</text>'
+            f'<text x="910" y="139" font-size="12" font-weight="600" fill="{t["fg"]}">blinky · Pip</text>'
+            f'<text x="910" y="156" font-size="12" fill="{t["sub"]}">Claude is done</text></g></g>')
+
+
 def scene(name: str) -> str:
     t = THEMES[name]
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
-            f'aria-label="A desk with a terminal, Filyy and Calendary; a blinky reports that the checks pass">'
+            f'aria-label="A desk with a terminal, Filyy and Calendary; a blinky reports that the checks pass and the phone gets the push">'
             f'<style>{css(t)}</style><rect width="{W}" height="{H}" rx="18" fill="{t["bg"]}"/>'
-            f'{bar(t)}{terminal(t)}{files(t)}{calendar(t)}</svg>\n')
+            f'{bar(t)}{terminal(t)}{files(t)}{calendar(t)}{phone(t)}</svg>\n')
 
 
 # Projects: (slug, name, icon in assets/icons, stack, description in two lines).
