@@ -37,13 +37,24 @@ CHAR_W = 7.8
 DONE_AT = 37
 
 
+def slide_in(name: str, at: int, span: int = 4, rise: int = 16) -> str:
+    """Drop in from above on a minimum-jerk curve; CSS has no such easing, so it is sampled into keyframes."""
+    frames = [f"0%,{at}%{{opacity:0;transform:translateY(-{rise}px)}}"]
+    for k in range(1, 9):
+        u = k / 8
+        e = 10 * u**3 - 15 * u**4 + 6 * u**5
+        frames.append(f"{at + span * u:g}%{{opacity:{e:.3f};transform:translateY({rise * (e - 1) + 0:.2f}px)}}")
+    frames.append("93%{opacity:1;transform:translateY(0)}98%,100%{opacity:0;transform:translateY(0)}")
+    return f"@keyframes {name}{{{''.join(frames)}}}"
+
+
 def css(t: dict) -> str:
     def show(name: str, at: int) -> str:
         return (f"@keyframes {name}{{0%,{at}%{{opacity:0}}{at + 1}%,93%{{opacity:1}}98%,100%{{opacity:0}}}}")
 
     typed = len(PROMPT) * CHAR_W
     rules = [show(f"l{i}", at) for i, (at, _, _) in enumerate(LINES)]
-    rules += [show("done", DONE_AT), show("bubble", DONE_AT + 1), show("push", DONE_AT + 3),
+    rules += [show("done", DONE_AT), show("bubble", DONE_AT + 1), slide_in("push", DONE_AT + 3),
               "@keyframes prompt{0%,93%{opacity:1}98%,100%{opacity:0}}",
               f"@keyframes type{{0%,2%{{transform:translateX(0)}}11%,100%{{transform:translateX({typed}px)}}}}",
               "@keyframes cursor{0%,11%{opacity:1}12%,100%{opacity:0}}",

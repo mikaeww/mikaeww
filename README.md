@@ -7,6 +7,7 @@ I build tools I use myself, and I keep them small.
   <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.svg">
   <img src="assets/header-light.svg" width="100%" alt="An agent runs the checks in a terminal, and the little character in its corner says they pass. Next to it, the phone gets the push that Claude is done.">
 </picture>
+<br><sub>Blinky preview</sub>
 
 
 ### Projects
